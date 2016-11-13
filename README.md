@@ -1,10 +1,9 @@
 App Dependencies:
 -----------------
-SDL2
-SDL2_image
-tmx - https://github.com/baylej/tmx
+[SDL2](https://www.libsdl.org/download-2.0.php),
+[SDL2_image](https://www.libsdl.org/projects/SDL_image/),
+[Tmx](https://github.com/baylej/tmx)
 
-Tmx Dependencies:
+Tmx parser:
 -----------------
-Zlib
-libxml2
+depends on [Zlib](http://zlib.net/) and [LibXml2](http://xmlsoft.org).
