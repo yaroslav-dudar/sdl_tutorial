@@ -3,6 +3,8 @@
 // Using SDL2_image
 #include <SDL2/SDL_image.h>
 #include <stdio.h>
+// tmx c lib
+#include <tmx.h>
 
 //Screen dimension constants
 const int SCREEN_WIDTH = 800;
@@ -11,11 +13,17 @@ const int SCREEN_HEIGHT = 600;
 struct Character {
     int x_pos;
     int y_pos;
+    float angle;
+    // the flip of the texture.
+    SDL_RendererFlip flip;
+    // center of character texture
+    SDL_Point center;
+    bool is_moving;
 };
 
 int main( int argc, char* args[] )
 {
-    //The window we'll be rendering to
+    // The window we'll be rendering to
     SDL_Window* window = NULL;
     // SDL Event handler
     SDL_Event event;
@@ -25,6 +33,13 @@ int main( int argc, char* args[] )
     SDL_Renderer * renderer = NULL;
     // Create Textture from existing Surface
     SDL_Texture * texture = NULL;
+
+    // load tmx-tiles
+    tmx_map *map = tmx_load("tiles/base.tmx");
+    if (!map) {
+        tmx_perror("tmx_load");
+        return 1;
+    }
 
     // Application state
     bool quit = false;
@@ -47,6 +62,12 @@ int main( int argc, char* args[] )
     struct Character character;
     character.x_pos = 10;
     character.y_pos = 10;
+    // turn right by default
+    character.angle = 0.0f;
+    character.flip = SDL_FLIP_NONE;
+    // the center where the texture will be rotated.
+    character.center = {16, 32};
+    character.is_moving = false;
 
     if( window == NULL )
     {
@@ -62,12 +83,18 @@ int main( int argc, char* args[] )
     SDL_SetRenderDrawColor(renderer, 168, 230, 255, 255);
     SDL_RenderClear(renderer);
 
+    Uint32 sprite;
     while (!quit)
     {
         // SDL_GetTicks() gives us the number of milliseconds
         // that passed since the program started
-        Uint32 ticks = SDL_GetTicks();
-        Uint32 sprite = (ticks / 100) % 4;
+
+        if (character.is_moving) {
+            Uint32 ticks = SDL_GetTicks();
+            sprite = (ticks / 200) % 4;
+        } else {
+            sprite = 0;
+        }
 
         SDL_Rect srcrect = { sprite * 32, 0, 32, 64 };
         SDL_Rect dstrect = {
@@ -85,13 +112,18 @@ int main( int argc, char* args[] )
                     break;
 
                 case SDL_KEYDOWN:
+                    character.is_moving = true;
                     // key press handler
                     switch (event.key.keysym.sym)
                     {
                         case SDLK_LEFT:
+                            character.angle = 180.0f;
+                            character.flip = SDL_FLIP_VERTICAL;
                             character.x_pos -= 5;
                             break;
                         case SDLK_RIGHT:
+                            character.angle = 0.0f;
+                            character.flip = SDL_FLIP_NONE;
                             character.x_pos += 5;
                             break;
                         case SDLK_UP:
@@ -101,20 +133,25 @@ int main( int argc, char* args[] )
                     }
                     break;
             }
+
+            if (event.type != SDL_KEYDOWN)
+            {
+                character.is_moving = false;
+            }
         }
 
         // Clearing context we drew before
         SDL_RenderClear(renderer);
         // Copy a portion of the texture
         // to the current rendering target.
-        SDL_RenderCopy(renderer, texture, &srcrect, &dstrect);
+        SDL_RenderCopyEx(
+            renderer, texture, &srcrect, &dstrect,
+            character.angle, &character.center, character.flip
+        );
         // Update the screen
         SDL_RenderPresent(renderer);
         // Sleep 20 ms
         SDL_Delay(20);
-        //SDL_Log("SDL_Log: Hello World\n");
-        // Flush user events
-        SDL_FlushEvents(SDL_USEREVENT, SDL_LASTEVENT);
     }
     
     // Free memory
@@ -122,6 +159,9 @@ int main( int argc, char* args[] )
     SDL_FreeSurface(image);
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
+
+    // free tmx map
+    tmx_map_free(map);
 
     //Quit SDL, IMG subsystems
     IMG_Quit();
