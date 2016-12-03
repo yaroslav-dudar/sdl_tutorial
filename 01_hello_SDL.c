@@ -5,6 +5,7 @@
 #include <stdio.h>
 // tmx c lib
 #include <tmx.h>
+#include "utils.h"
 
 //Screen dimension constants
 const int SCREEN_WIDTH = 800;
@@ -33,13 +34,20 @@ int main( int argc, char* args[] )
     SDL_Renderer * renderer = NULL;
     // Create Textture from existing Surface
     SDL_Texture * texture = NULL;
-
     // load tmx-tiles
     tmx_map *map = tmx_load("tiles/base.tmx");
+    SDL_Texture *map_bmp;
+
     if (!map) {
         tmx_perror("tmx_load");
         return 1;
     }
+
+    // init map pos
+    SDL_Rect map_rect;
+    map_rect.w = map->width  * map->tile_width;
+    map_rect.h = map->height * map->tile_height;
+    map_rect.x = 0;  map_rect.y = 0;
 
     // Application state
     bool quit = false;
@@ -82,6 +90,9 @@ int main( int argc, char* args[] )
     // Set the color used for drawing operations
     SDL_SetRenderDrawColor(renderer, 168, 230, 255, 255);
     SDL_RenderClear(renderer);
+
+    if (!(map_bmp = render_map(map, renderer)))
+        SDL_GetError();
 
     Uint32 sprite;
     while (!quit)
@@ -141,17 +152,20 @@ int main( int argc, char* args[] )
         }
 
         // Clearing context we drew before
-        SDL_RenderClear(renderer);
+        //SDL_RenderClear(renderer);
         // Copy a portion of the texture
         // to the current rendering target.
-        SDL_RenderCopyEx(
-            renderer, texture, &srcrect, &dstrect,
-            character.angle, &character.center, character.flip
-        );
+        //SDL_RenderCopyEx(
+        //    renderer, texture, &srcrect, &dstrect,
+        //    character.angle, &character.center, character.flip
+        //);
         // Update the screen
-        SDL_RenderPresent(renderer);
+        //SDL_RenderPresent(renderer);
         // Sleep 20 ms
         SDL_Delay(20);
+        SDL_RenderClear(renderer);
+        SDL_RenderCopy(renderer, map_bmp, NULL, &map_rect);
+        SDL_RenderPresent(renderer);
     }
     
     // Free memory
